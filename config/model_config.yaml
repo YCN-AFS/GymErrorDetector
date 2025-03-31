@@ -1,0 +1,21 @@
+model:
+  path: "models/pose_model.pth"
+  input_size: 99
+  hidden_size: 128
+  num_classes: 5
+
+camera:
+  max_index: 10
+  frame_width: 640
+  frame_height: 480
+  fps: 30
+
+pose:
+  confidence_threshold: 0.5
+  min_detection_confidence: 0.5
+  min_tracking_confidence: 0.5
+
+evaluation:
+  fall_detection_threshold: 0.8
+  pose_similarity_threshold: 0.7
+  max_frames_for_evaluation: 30 
