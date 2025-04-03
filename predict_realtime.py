@@ -303,7 +303,8 @@ def predict_pose():
     visualizer = PoseVisualizer()
 
     # Mở video
-    cap = cv2.VideoCapture(r"C:\Users\fox\Downloads\202502191737.mp4")
+    cap = cv2.VideoCapture(0)
+    #r"C:\Users\fox\Downloads\202502191737.mp4"
     
     # Lấy kích thước màn hình
     screen_width = 1280
