@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Exercise Analysis</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: linear-gradient(135deg, #1e1e1e, #3a3a3a);
+            color: #ffffff;
+        }
+        h1 {
+            color: #ffffff;
+        }
+        #container {
+            background: rgba(30, 30, 30, 0.95);
+            padding: 20px;
+            border-radius: 10px;
+            display: inline-block;
+            box-shadow: 0px 0px 15px rgba(255, 255, 255, 0.2);
+        }
+        select, button {
+            padding: 12px;
+            font-size: 16px;
+            margin: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        select {
+            background: #ff9800;
+            color: white;
+        }
+        button {
+            background: #ff5722;
+            color: white;
+            transition: 0.3s;
+        }
+        button:hover {
+            background: #e64a19;
+        }
+        #video {
+            border: 5px solid #ff9800;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        #status, #errors, #connection {
+            font-size: 18px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Exercise Analysis</h1>
+    <div id="container">
+        <label for="exercise">Choose an exercise:</label>
+        <select id="exercise">
+            <option value="squat">Squat</option>
+            <option value="plank">Plank</option>
+            <option value="pushup">Push-up</option>
+            <option value="lunges">Lunges</option>
+        </select>
+        <button onclick="changeExercise()">Start</button>
+        
+        <br>
+        <img id="video" width="640" height="480" />
+        <p id="status">Status: Connecting...</p>
+        <p id="errors">Errors: None</p>
+        <p id="connection">Connection: Waiting...</p>
+    </div>
+    
+    <script>
+        let ws;
+        function changeExercise() {
+            const exerciseType = document.getElementById("exercise").value;
+            if (ws) {
+                ws.close();
+            }
+            ws = new WebSocket(`ws://127.0.0.1:8000/${exerciseType}`);
+            
+            ws.onopen = function() {
+                console.log("WebSocket connected!");
+                document.getElementById("connection").innerText = "Connection: Connected";
+            };
+            
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                document.getElementById("video").src = "data:image/jpeg;base64," + data.video_frame;
+                document.getElementById("status").innerText = `Status: ${data.status}`;
+                document.getElementById("errors").innerText = `Errors: ${data.errors.join(", ") || "None"}`;
+            };
+            
+            ws.onerror = function(error) {
+                console.error("WebSocket error:", error);
+                document.getElementById("connection").innerText = "Connection: Error";
+            };
+            
+            ws.onclose = function() {
+                console.log("WebSocket closed.");
+                document.getElementById("connection").innerText = "Connection: Closed";
+            };
+        }
+    </script>
+</body>
+</html>
