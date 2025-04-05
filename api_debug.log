@@ -1,0 +1,26 @@
+2025-04-05 18:17:37,976 - exercise_api - ERROR - Could not import squat_analysis. Using dummy function.
+2025-04-05 18:17:37,976 - exercise_api - ERROR - Could not import plank_analysis. Using dummy function.
+2025-04-05 18:17:37,976 - exercise_api - ERROR - Could not import pushup_analysis. Using dummy function.
+2025-04-05 18:17:37,976 - exercise_api - ERROR - Could not import lunges_analysis. Using dummy function.
+2025-04-05 18:17:37,987 - exercise_api - INFO - MediaPipe initialized successfully
+2025-04-05 18:17:38,038 - exercise_api - INFO - Starting server on 0.0.0.0:2222 in development environment
+2025-04-05 18:17:38,038 - exercise_api - WARNING - Module squat_analysis.py not found. Creating dummy module...
+2025-04-05 18:17:38,038 - exercise_api - INFO - Created dummy module squat_analysis.py
+2025-04-05 18:17:38,038 - exercise_api - WARNING - Module plank_analysis.py not found. Creating dummy module...
+2025-04-05 18:17:38,038 - exercise_api - INFO - Created dummy module plank_analysis.py
+2025-04-05 18:17:38,038 - exercise_api - WARNING - Module pushup_analysis.py not found. Creating dummy module...
+2025-04-05 18:17:38,038 - exercise_api - INFO - Created dummy module pushup_analysis.py
+2025-04-05 18:17:38,038 - exercise_api - WARNING - Module lunges_analysis.py not found. Creating dummy module...
+2025-04-05 18:17:38,038 - exercise_api - INFO - Created dummy module lunges_analysis.py
+2025-04-05 18:17:38,046 - exercise_api - WARNING - Development SSL certificates not found
+2025-04-05 18:17:38,046 - exercise_api - INFO - Running in insecure mode
+2025-04-05 18:17:38,048 - asyncio - DEBUG - Using proactor: IocpProactor
+2025-04-05 18:17:43,670 - exercise_api - INFO - Imported squat_analysis successfully
+2025-04-05 18:17:43,670 - exercise_api - INFO - Imported plank_analysis successfully
+2025-04-05 18:17:43,670 - exercise_api - INFO - Imported pushup_analysis successfully
+2025-04-05 18:17:43,670 - exercise_api - INFO - Imported lunges_analysis successfully
+2025-04-05 18:17:43,685 - exercise_api - INFO - MediaPipe initialized successfully
+2025-04-05 18:17:43,730 - exercise_api - INFO - Starting server on 0.0.0.0:2222 in development environment
+2025-04-05 18:17:43,732 - exercise_api - WARNING - Development SSL certificates not found
+2025-04-05 18:17:43,732 - exercise_api - INFO - Running in insecure mode
+2025-04-05 18:17:43,735 - asyncio - DEBUG - Using proactor: IocpProactor
