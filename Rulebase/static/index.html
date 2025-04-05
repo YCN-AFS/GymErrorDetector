@@ -39,11 +39,6 @@
         button:hover {
             background: #e64a19;
         }
-        #video {
-            border: 5px solid #ff9800;
-            border-radius: 10px;
-            margin-top: 20px;
-        }
         #cameraView {
             border: 5px solid #ff9800;
             border-radius: 10px;
@@ -110,8 +105,12 @@
                     stream = mediaStream;
                     videoElement.srcObject = mediaStream;
                     
+                    // Get the current host and use it for WebSocket
+                    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                    const wsUrl = `${wsProtocol}//${window.location.host}/${exerciseType}`;
+                    
                     // Connect to WebSocket
-                    ws = new WebSocket(`ws://192.168.1.221:2222/${exerciseType}`);
+                    ws = new WebSocket(wsUrl);
                     
                     ws.onopen = function() {
                         console.log("WebSocket connected!");
