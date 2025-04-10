@@ -1,46 +1,352 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Exercise Analysis</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exercise Analysis Client</title>
     <style>
-        #video { border: 1px solid black; }
-        #status, #errors { font-size: 18px; }
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .video-container {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-top: 20px;
+        }
+        .video-box {
+            width: 48%;
+        }
+        video, canvas {
+            width: 100%;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        h1 {
+            color: #333;
+        }
+        .controls {
+            margin: 20px 0;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        select {
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            min-height: 100px;
+            width: 100%;
+            text-align: left;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .server-settings {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            width: 100%;
+        }
+        .server-settings label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .server-settings input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
-    <h1>Exercise Analysis</h1>
-    <img id="video" width="640" height="480" />
-    <p id="status">Status: Connecting...</p>
-    <p id="errors">Errors: None</p>
-    <p id="connection">Connection: Waiting...</p>
+    <div class="container">
+        <h1>Exercise Analysis</h1>
+
+        <div class="server-settings">
+            <label for="serverUrl">Server URL (without trailing slash):</label>
+            <input type="text" id="serverUrl" value="wss://cf.s4h.edu.vn" placeholder="e.g., ws://localhost:2222 or wss://cf.s4h.edu.vn">
+            <p>Make sure to use 'ws://' for HTTP or 'wss://' for HTTPS connections. Do not include a trailing slash.</p>
+        </div>
+
+        <div class="controls">
+            <select id="exerciseType">
+                <option value="squat">Squat</option>
+                <option value="plank">Plank</option>
+                <option value="pushup">Push Up</option>
+                <option value="lunges">Lunges</option>
+            </select>
+            <button id="startBtn">Start Analysis</button>
+            <button id="stopBtn" disabled>Stop Analysis</button>
+        </div>
+
+        <div class="video-container">
+            <div class="video-box">
+                <h3>Your Camera</h3>
+                <video id="userVideo" autoplay playsinline></video>
+            </div>
+            <div class="video-box">
+                <h3>Analysis Result</h3>
+                <canvas id="resultCanvas"></canvas>
+            </div>
+        </div>
+
+        <div class="status" id="statusArea">
+            <p>Select an exercise type and click "Start Analysis" to begin.</p>
+        </div>
+    </div>
 
     <script>
-        const exerciseType = "squat"; // Thay bằng plank, pushup, lunges nếu muốn
-        // Thay IP bằng IP máy chạy API (LAN) hoặc URL ngrok
-        const ws = new WebSocket("http://192.168.1.221:2222/squat"); // Ví dụ IP LAN
-        // Nếu dùng ngrok: const ws = new WebSocket("ws://abcd1234.ngrok.io/squat");
+        // DOM elements
+        const exerciseType = document.getElementById('exerciseType');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const userVideo = document.getElementById('userVideo');
+        const resultCanvas = document.getElementById('resultCanvas');
+        const statusArea = document.getElementById('statusArea');
+        const serverUrlInput = document.getElementById('serverUrl');
+        
+        // Variables
+        let websocket = null;
+        let mediaStream = null;
+        let isAnalyzing = false;
+        let captureInterval = null;
+        
+        // Format the WebSocket URL correctly
+        function getWebSocketUrl(baseUrl, path) {
+            // Remove trailing slashes from baseUrl
+            baseUrl = baseUrl.replace(/\/+$/, '');
+            
+            // Remove leading slashes from path
+            path = path.replace(/^\/+/, '');
+            
+            // Join with a single slash
+            return `${baseUrl}/${path}`;
+        }
+        
+        // Start analysis
+        startBtn.addEventListener('click', async () => {
+            try {
+                // Skip the server test - connect directly to WebSocket
+                statusArea.innerHTML = '<p>Attempting to connect to the server...</p>';
+                
+                // Get camera access
+                mediaStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { width: 640, height: 480 }, 
+                    audio: false 
+                });
+                
+                // Display camera feed
+                userVideo.srcObject = mediaStream;
+                
+                // Connect to WebSocket server
+                connectWebSocket();
+                
+                // Update UI
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                
+            } catch (error) {
+                statusArea.innerHTML = `<p class="error">Error accessing camera: ${error.message}</p>`;
+                console.error('Error accessing camera:', error);
+            }
+        });
+        
+        // Stop analysis
+        stopBtn.addEventListener('click', () => {
+            stopAnalysis();
+        });
+        
+        // Connect to WebSocket
+        function connectWebSocket() {
+            const selectedExercise = exerciseType.value;
+            const wsUrl = getWebSocketUrl(serverUrlInput.value, selectedExercise);
+            
+            statusArea.innerHTML += `<p>Connecting to: ${wsUrl}</p>`;
+            
+            websocket = new WebSocket(wsUrl);
+            
+            websocket.onopen = () => {
+                statusArea.innerHTML = '<p class="success">WebSocket connected! Starting analysis...</p>';
+                isAnalyzing = true;
+                
+                // Start sending frames
+                startFrameCapture();
+            };
+            
+            websocket.onmessage = (event) => {
+                const response = JSON.parse(event.data);
+                
+                // Draw the processed frame on canvas
+                if (response.video_frame) {
+                    drawResultImage(response.video_frame);
+                }
+                
+                // Update status
+                let statusHTML = `<p><strong>Status:</strong> ${response.status}</p>`;
+                
+                // Display errors if any
+                if (response.errors && response.errors.length > 0) {
+                    statusHTML += '<p><strong>Errors:</strong></p><ul>';
+                    response.errors.forEach(error => {
+                        statusHTML += `<li class="error">${error}</li>`;
+                    });
+                    statusHTML += '</ul>';
+                } else if (response.status !== "No person detected") {
+                    statusHTML += '<p class="success">Good form!</p>';
+                }
+                
+                statusArea.innerHTML = statusHTML;
+            };
+            
+            websocket.onerror = (error) => {
+                statusArea.innerHTML = `<p class="error">WebSocket error: Please check that the server is running and the URL is correct.</p>
+                <p>If using a secure connection (wss://), make sure your server has a valid SSL certificate.</p>
+                <p>Check the endpoint URL: ${wsUrl}</p>
+                <p>Make sure the WebSocket endpoints are configured correctly on your server.</p>`;
+                console.error('WebSocket error:', error);
+                stopAnalysis(false);
+            };
+            
+            websocket.onclose = () => {
+                if (isAnalyzing) {
+                    statusArea.innerHTML += '<p>WebSocket connection closed.</p>';
+                    stopAnalysis(false);
+                }
+            };
+            
+            // Set a timeout to check if connection established
+            setTimeout(() => {
+                if (websocket && websocket.readyState !== WebSocket.OPEN && isAnalyzing) {
+                    statusArea.innerHTML = '<p class="error">Could not connect to WebSocket server within timeout period. Please check the server URL and ensure the server is running.</p>';
+                    stopAnalysis(false);
+                }
+            }, 5000);
+        }
+        
+        // Capture and send frames
+        function startFrameCapture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 640;
+            canvas.height = 480;
+            const ctx = canvas.getContext('2d');
+            
+            captureInterval = setInterval(() => {
+                if (!isAnalyzing || !websocket || websocket.readyState !== WebSocket.OPEN) {
+                    clearInterval(captureInterval);
+                    return;
+                }
+                
+                // Draw video frame to canvas
+                ctx.drawImage(userVideo, 0, 0, canvas.width, canvas.height);
+                
+                // Convert to base64
+                const imageData = canvas.toDataURL('image/jpeg', 0.7);
+                const base64Data = imageData.split(',')[1];
+                
+                // Send to server
+                websocket.send(JSON.stringify({
+                    frame: base64Data
+                }));
+                
+            }, 100); // 10 frames per second
+        }
+        
+        // Draw result image on canvas
+        function drawResultImage(base64Image) {
+            const img = new Image();
+            img.onload = () => {
+                const ctx = resultCanvas.getContext('2d');
+                resultCanvas.width = img.width;
+                resultCanvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+            };
+            img.src = 'data:image/jpeg;base64,' + base64Image;
+        }
+        
+        // Stop analysis
+        function stopAnalysis(addStoppedMessage = true) {
+            // Clear capture interval
+            if (captureInterval) {
+                clearInterval(captureInterval);
+                captureInterval = null;
+            }
+            
+            // Close WebSocket
+            if (websocket) {
+                websocket.close();
+                websocket = null;
+            }
+            
+            // Stop media stream
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+                userVideo.srcObject = null;
+            }
+            
+            // Reset UI
+            isAnalyzing = false;
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            
+            if (addStoppedMessage) {
+                statusArea.innerHTML += '<p>Analysis stopped.</p>';
+            }
+        }
+        
+        // Clean up on page unload
+        window.addEventListener('beforeunload', () => {
+            stopAnalysis();
+        });
 
-        ws.onopen = function() {
-            console.log("WebSocket connected!");
-            document.getElementById("connection").innerText = "Connection: Connected";
-        };
-
-        ws.onmessage = function(event) {
-            const data = JSON.parse(event.data);
-            document.getElementById("video").src = "data:image/jpeg;base64," + data.video_frame;
-            document.getElementById("status").innerText = `Status: ${data.status}`;
-            document.getElementById("errors").innerText = `Errors: ${data.errors.join(", ") || "None"}`;
-        };
-
-        ws.onerror = function(error) {
-            console.error("WebSocket error:", error);
-            document.getElementById("connection").innerText = "Connection: Error";
-        };
-
-        ws.onclose = function() {
-            console.log("WebSocket closed.");
-            document.getElementById("connection").innerText = "Connection: Closed";
-        };
+        // Remove any trailing slashes on input change
+        serverUrlInput.addEventListener('change', function() {
+            this.value = this.value.replace(/\/+$/, '');
+        });
     </script>
 </body>
 </html>

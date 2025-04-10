@@ -111,7 +111,7 @@
                     videoElement.srcObject = mediaStream;
                     
                     // Connect to WebSocket
-                    ws = new WebSocket(`https://cf.s4h.edu.vn/${exerciseType}`);
+                    ws = new WebSocket(`ws://http://192.168.56.1:2222//${exerciseType}`);
                     
                     ws.onopen = function() {
                         console.log("WebSocket connected!");

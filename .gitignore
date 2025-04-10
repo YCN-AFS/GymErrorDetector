@@ -1,2 +1,6 @@
 /.venv
 archive
+/processed_videos
+api_debug.log
+exercise-analysis-api.tar
+Dockerfile

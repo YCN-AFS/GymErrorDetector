@@ -6,10 +6,10 @@ import asyncio
 import json
 import base64
 import numpy as np
-from squat_analysis import check_squat
-from plank_analysis import check_plank
-from pushup_analysis import check_pushup
-from lunges_analysis import check_lunges
+from .squat_analysis import check_squat
+from .plank_analysis import check_plank
+from .pushup_analysis import check_pushup
+from .lunges_analysis import check_lunges
 
 # Khởi tạo FastAPI
 app = FastAPI(title="Exercise Analysis API")
@@ -27,7 +27,7 @@ async def process_frame(frame_data, exercise_type, error_timestamps, start_time)
     frame = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
     
     if frame is None:
-        return None, "Failed to decode frame", []
+        return None, "Failed to decode frame", [], 0
     
     # Xử lý khung hình với MediaPipe
     rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -39,31 +39,36 @@ async def process_frame(frame_data, exercise_type, error_timestamps, start_time)
         
         # Gọi hàm check tương ứng
         if exercise_type == "squat":
-            status, errors = check_squat(landmarks, error_timestamps, current_time)
+            status, errors, rep_count = check_squat(landmarks, error_timestamps, current_time)
         elif exercise_type == "plank":
             status, errors = check_plank(landmarks, error_timestamps, current_time)
+            rep_count = 0  # Plank doesn't have rep count
         elif exercise_type == "pushup":
             status, errors = check_pushup(landmarks, error_timestamps, current_time)
+            rep_count = 0  # Pushup might need separate rep counting logic
         elif exercise_type == "lunges":
             status, errors = check_lunges(landmarks, error_timestamps, current_time)
+            rep_count = 0  # Lunges might need separate rep counting logic
         
         # Vẽ landmarks và thông tin lên frame
         mp_drawing.draw_landmarks(frame, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
         cv2.putText(frame, f"Status: {status}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        cv2.putText(frame, f"Reps: {rep_count}", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        
         if errors:
             for i, error in enumerate(errors):
-                cv2.putText(frame, f"Error {i+1}: {error}", (10, 60 + i*30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                cv2.putText(frame, f"Error {i+1}: {error}", (10, 90 + i*30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
         else:
-            cv2.putText(frame, "No errors detected", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            cv2.putText(frame, "No errors detected", (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
     else:
-        status, errors = "No person detected", []
+        status, errors, rep_count = "No person detected", [], 0
         cv2.putText(frame, "No person detected", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
     
     # Mã hóa frame đã xử lý thành base64
     _, buffer = cv2.imencode('.jpg', frame)
     processed_frame_base64 = base64.b64encode(buffer).decode('utf-8')
     
-    return processed_frame_base64, status, errors
+    return processed_frame_base64, status, errors, rep_count
 
 # Hàm xử lý WebSocket
 async def handle_websocket(websocket: WebSocket, exercise_type):
@@ -80,7 +85,7 @@ async def handle_websocket(websocket: WebSocket, exercise_type):
             
             if "frame" in data_json:
                 # Xử lý khung hình
-                processed_frame, status, errors = await process_frame(
+                processed_frame, status, errors, rep_count = await process_frame(
                     data_json["frame"], exercise_type, error_timestamps, start_time
                 )
                 
@@ -89,6 +94,7 @@ async def handle_websocket(websocket: WebSocket, exercise_type):
                     result = {
                         "status": status,
                         "errors": errors,
+                        "rep_count": rep_count,
                         "video_frame": processed_frame
                     }
                     await websocket.send_text(json.dumps(result))
@@ -96,6 +102,7 @@ async def handle_websocket(websocket: WebSocket, exercise_type):
                     await websocket.send_text(json.dumps({
                         "status": "Error",
                         "errors": ["Failed to process frame"],
+                        "rep_count": 0,
                         "video_frame": ""
                     }))
     except Exception as e:
@@ -128,4 +135,4 @@ async def lunges_endpoint(websocket: WebSocket):
 # Chạy API
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8031)
+    uvicorn.run(app, host="0.0.0.0", port=2222)
