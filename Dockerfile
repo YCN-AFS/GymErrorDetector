@@ -48,13 +48,17 @@ ENV PYTHONPATH=/app:/app/Rulebase
 RUN pip install --no-cache-dir \
     fastapi \
     uvicorn \
-    websockets
+    websockets \
+    python-multipart
 
-# Make port 2222 available to the world outside this container
-EXPOSE 2222
+# Expose a range of ports
+EXPOSE 2000-2999
+
+# Define environment variable for port
+ENV PORT=2222
 
 # Define environment variable
 ENV NAME=ExerciseAnalysisAPI
 
-# Run the application
-CMD ["uvicorn", "Rulebase.exercise_api:app", "--host", "0.0.0.0", "--port", "2222", "--proxy-headers"] 
+# Run the application with port from environment variable
+CMD ["sh", "-c", "uvicorn Rulebase.exercise_api:app --host 0.0.0.0 --port ${PORT} --proxy-headers"] 

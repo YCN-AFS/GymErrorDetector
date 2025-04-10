@@ -108,7 +108,7 @@
 
         <div class="server-settings">
             <label for="serverUrl">Server URL (without trailing slash):</label>
-            <input type="text" id="serverUrl" value="wss://cf.s4h.edu.vn" placeholder="e.g., ws://localhost:2222 or wss://cf.s4h.edu.vn">
+            <input type="text" id="serverUrl" value="https://cf.s4h.edu.vn" placeholder="e.g., ws://localhost:2222 or wss://cf.s4h.edu.vn">
             <p>Make sure to use 'ws://' for HTTP or 'wss://' for HTTPS connections. Do not include a trailing slash.</p>
         </div>
 
@@ -163,8 +163,18 @@
             // Remove leading slashes from path
             path = path.replace(/^\/+/, '');
             
-            // Join with a single slash
-            return `${baseUrl}/${path}`;
+            // Determine the correct WebSocket protocol
+            const protocol = baseUrl.startsWith('https://') ? 'wss://' : 
+                             baseUrl.startsWith('http://') ? 'ws://' : 
+                             baseUrl.startsWith('wss://') ? 'wss://' :
+                             baseUrl.startsWith('ws://') ? 'ws://' : 
+                             'wss://'; // default to secure WebSocket
+            
+            // Remove protocol from baseUrl
+            const hostAndPath = baseUrl.replace(/^(https?:\/\/|wss?:\/\/)/, '');
+            
+            // Construct the full WebSocket URL
+            return `${protocol}${hostAndPath}/${path}`;
         }
         
         // Start analysis
@@ -243,11 +253,35 @@
             };
             
             websocket.onerror = (error) => {
-                statusArea.innerHTML = `<p class="error">WebSocket error: Please check that the server is running and the URL is correct.</p>
-                <p>If using a secure connection (wss://), make sure your server has a valid SSL certificate.</p>
-                <p>Check the endpoint URL: ${wsUrl}</p>
-                <p>Make sure the WebSocket endpoints are configured correctly on your server.</p>`;
-                console.error('WebSocket error:', error);
+                // Log the full error object to console for detailed debugging
+                console.error('Full WebSocket error object:', error);
+                
+                // Try to extract more specific error information
+                const errorMessage = error.message || 
+                    (error.target && error.target.readyState !== undefined 
+                        ? `Connection failed. ReadyState: ${error.target.readyState}` 
+                        : 'Unknown WebSocket connection error');
+                
+                statusArea.innerHTML = `<p class="error">WebSocket connection error:</p>
+                <ul>
+                    <li>Server URL: ${wsUrl}</li>
+                    <li>Error: ${errorMessage}</li>
+                    <li>Possible causes:
+                        <ul>
+                            <li>Server is not running</li>
+                            <li>Incorrect server URL</li>
+                            <li>Network connectivity issues</li>
+                            <li>SSL/TLS certificate problems</li>
+                            <li>Firewall blocking WebSocket connection</li>
+                        </ul>
+                    </li>
+                </ul>
+                <p>Please check the browser's developer console for more details.</p>`;
+                console.error('WebSocket connection error details:', {
+                    url: wsUrl,
+                    errorMessage: errorMessage,
+                    fullError: error
+                });
                 stopAnalysis(false);
             };
             
