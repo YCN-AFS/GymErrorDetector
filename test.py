@@ -1,90 +1,47 @@
-import websockets
-import asyncio
-import base64
 import cv2
-import numpy as np
-import json
-import ssl
-
-async def analyze_exercise(exercise_type):
-    # Endpoint API công khai
-    uri = f"wss://cf.s4h.edu.vn/{exercise_type}"
-
-    # Cấu hình SSL linh hoạt
-    ssl_context = ssl.create_default_context()
-    ssl_context.check_hostname = False
-    ssl_context.verify_mode = ssl.CERT_NONE
-
-    try:
-        # Kết nối WebSocket
-        async with websockets.connect(uri, ssl=ssl_context) as websocket:
-            # Mở camera
-            cap = cv2.VideoCapture(0)
-            if not cap.isOpened():
-                print("Không thể mở camera.")
-                return
-
-            while True:
-                ret, frame = cap.read()
-                if not ret:
-                    print("Không thể đọc khung hình.")
-                    break
-
-                # Nén và chuyển đổi frame
-                _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
-                frame_base64 = base64.b64encode(buffer).decode('utf-8')
-
-                try:
-                    # Gửi frame
-                    await websocket.send(json.dumps({"frame": frame_base64}))
-                    
-                    # Nhận kết quả
-                    response = await websocket.recv()
-                    result = json.loads(response)
-
-                    # Hiển thị kết quả
-                    print(f"Status: {result.get('status', 'Unknown')}")
-                    print(f"Errors: {result.get('errors', [])}")
-
-                    # Hiển thị video frame đã xử lý
-                    if result.get('video_frame'):
-                        processed_frame = base64.b64decode(result['video_frame'])
-                        processed_frame_np = cv2.imdecode(np.frombuffer(processed_frame, np.uint8), cv2.IMREAD_COLOR)
-                        cv2.imshow('Exercise Analysis', processed_frame_np)
-
-                except Exception as e:
-                    print(f"Lỗi xử lý frame: {e}")
-                
-                # Thoát khi nhấn 'q'
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
-
-            # Giải phóng tài nguyên
-            cap.release()
-            cv2.destroyAllWindows()
-
-    except websockets.exceptions.WebSocketException as e:
-        print(f"Lỗi WebSocket: {e}")
-    except Exception as e:
-        print(f"Lỗi không xác định: {e}")
-
-# Hàm chính để chạy phân tích
-async def main():
-    # Danh sách các bài tập để người dùng lựa chọn
-    exercises = ['squat', 'plank', 'pushup', 'lunges']
-    
-    print("Các bài tập khả dụng:")
-    for i, exercise in enumerate(exercises, 1):
-        print(f"{i}. {exercise.capitalize()}")
-    
-    # Lựa chọn bài tập
-    choice = input("Chọn số thứ tự bài tập: ")
-    try:
-        exercise_type = exercises[int(choice) - 1]
-        await analyze_exercise(exercise_type)
-    except (ValueError, IndexError):
-        print("Lựa chọn không hợp lệ.")
-
-# Chạy chương trình
-if __name__ == "__main__":
-    asyncio.run(main())
+import mediapipe as mp
+# Khởi tạo Mediapipe Pose
+mp_pose = mp.solutions.pose
+mp_drawing = mp.solutions.drawing_utils
+pose = mp_pose.Pose()
+# Cấu hình màu
+joint_color = (255, 255, 255)   # Khớp: trắng
+bone_color = (0, 255, 0)        # Xương: xanh lá
+landmark_style = mp_drawing.DrawingSpec(color=joint_color, thickness=2, circle_radius=3)
+connection_style = mp_drawing.DrawingSpec(color=bone_color, thickness=2)
+# Mở video
+video_path = r"C:\Users\fox\Documents\Projects\Physical-therapy\train\good\6111769848940.mp4"  # Đổi tên file tại đây
+cap = cv2.VideoCapture(video_path)
+# Kiểm tra video
+if not cap.isOpened():
+    print("Không thể mở video.")
+    exit()
+# Ghi video đầu ra
+output_path = "output_pose_bone_green_joint_white.mp4"
+fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+fps = int(cap.get(cv2.CAP_PROP_FPS))
+width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+# Xử lý từng frame
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        break
+    image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    results = pose.process(image_rgb)
+    if results.pose_landmarks:
+        mp_drawing.draw_landmarks(
+            frame,
+            results.pose_landmarks,
+            mp_pose.POSE_CONNECTIONS,
+            landmark_drawing_spec=landmark_style,
+            connection_drawing_spec=connection_style
+        )
+    out.write(frame)
+    cv2.imshow("Pose Detection", frame)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+cap.release()
+out.release()
+cv2.destroyAllWindows()

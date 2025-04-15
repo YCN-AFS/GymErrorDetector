@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exercise Analysis</title>
+    <style>
+        :root {
+            --primary-color: #3f51b5;
+            --secondary-color: #7986cb;
+            --accent-color: #ff4081;
+            --text-light: #ffffff;
+            --text-dark: #212121;
+            --bg-gradient: linear-gradient(135deg, #303f9f, #1a237e);
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            --border-radius: 12px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-dark);
+            min-height: 100vh;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 768px; /* Optimized for portrait tablet */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        header {
+            width: 100%;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .app-title {
+            color: var(--text-light);
+            font-size: 2.2rem;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .app-subtitle {
+            color: var(--text-light);
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        main {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            width: 100%;
+        }
+
+        .card-title {
+            font-size: 1.4rem;
+            margin-bottom: 16px;
+            color: var(--primary-color);
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .controls-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-dark);
+        }
+
+        select {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 1rem;
+            border: 2px solid var(--secondary-color);
+            border-radius: 8px;
+            background-color: white;
+            color: var(--text-dark);
+            outline: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%233f51b5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+        }
+
+        select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(63, 81, 181, 0.2);
+        }
+
+        .difficulty-selector {
+            display: flex;
+            gap: 8px;
+        }
+
+        .difficulty-btn {
+            flex: 1;
+            padding: 8px 0;
+            border: 2px solid var(--secondary-color);
+            border-radius: 6px;
+            background: white;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        .difficulty-btn.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .btn-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            grid-column: 1 / -1;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px 0;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+            grid-column: 1 / -1;
+        }
+
+        .btn-primary:hover {
+            background: #303f9f;
+            box-shadow: 0 4px 12px rgba(63, 81, 181, 0.3);
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+            grid-column: 1 / -1;
+        }
+
+        .btn-danger:hover {
+            background: #d32f2f;
+            box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            max-height: 45vh; /* Optimized for portrait view */
+        }
+
+        #cameraView {
+            width: 100%;
+            object-fit: cover;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            display: none; /* Always hide the camera view */
+        }
+
+        #resultView {
+            width: 100%;
+            object-fit: cover;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            max-height: 45vh;
+        }
+
+        .status-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+            padding: 16px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            margin-top: 16px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.95rem;
+        }
+
+        .status-icon {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .status-icon.green {
+            background-color: #4CAF50;
+        }
+
+        .status-icon.yellow {
+            background-color: #FFC107;
+        }
+
+        .status-icon.red {
+            background-color: #F44336;
+        }
+
+        .exercise-info {
+            margin-top: 16px;
+            padding: 16px;
+            background: #e8eaf6;
+            border-radius: 8px;
+            text-align: left;
+        }
+
+        .info-title {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+        }
+
+        .info-text {
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            width: 100%;
+            margin-top: 16px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 12px 8px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-value {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #757575;
+            margin-top: 4px;
+        }
+
+        .icon {
+            width: 18px;
+            height: 18px;
+        }
+
+        @media (max-width: 480px) {
+            .controls-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-container {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .stat-card:last-child {
+                grid-column: 1 / -1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <h1 class="app-title">Exercise Analysis</h1>
+            <p class="app-subtitle">Improve your workout technique with AI</p>
+        </header>
+
+        <main>
+            <section class="card">
+                <h2 class="card-title">Video Analysis</h2>
+                
+                <div class="video-container">
+                    <video id="cameraView" autoplay></video>
+                    <img id="resultView" src="/api/placeholder/640/480" alt="Exercise analysis result">
+                </div>
+
+                <div class="stats-container">
+                    <div class="stat-card">
+                        <div class="stat-value" id="repCount">0</div>
+                        <div class="stat-label">Repetitions</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="formScore">0%</div>
+                        <div class="stat-label">Form Score</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="duration">0:00</div>
+                        <div class="stat-label">Duration</div>
+                    </div>
+                </div>
+
+                <div class="status-container">
+                    <div class="status-item">
+                        <div class="status-icon green"></div>
+                        <span id="status">Status: Ready to start</span>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-icon yellow"></div>
+                        <span id="errors">Errors: None</span>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-icon yellow" id="connectionIcon"></div>
+                        <span id="connection">Connection: Waiting...</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card">
+                <h2 class="card-title">Controls</h2>
+                
+                <div class="controls-section">
+                    <div class="form-group">
+                        <label for="exercise">Choose an exercise:</label>
+                        <select id="exercise">
+                            <option value="squat">Squat</option>
+                            <option value="plank">Plank</option>
+                            <option value="pushup">Push-up</option>
+                            <option value="lunges">Lunges</option>
+                            <option value="deadlift">Deadlift</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Difficulty level:</label>
+                        <div class="difficulty-selector">
+                            <button class="difficulty-btn" data-level="beginner">Beginner</button>
+                            <button class="difficulty-btn active" data-level="intermediate">Intermediate</button>
+                            <button class="difficulty-btn" data-level="advanced">Advanced</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <button id="startButton" class="btn btn-primary" onclick="startExercise()">
+                            <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polygon points="10 8 16 12 10 16 10 8"></polygon>
+                            </svg>
+                            Start Analysis
+                        </button>
+                        
+                        <button id="stopButton" class="btn btn-danger" onclick="stopExercise()" style="display:none;">
+                            <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <rect x="9" y="9" width="6" height="6"></rect>
+                            </svg>
+                            Stop Analysis
+                        </button>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <div class="exercise-info">
+                            <h3 class="info-title">Exercise Guide</h3>
+                            <p class="info-text">
+                                Stand with feet shoulder-width apart. Lower your body as if sitting in a chair, keeping knees from extending past your toes. Keep your back straight and chest up. Return to standing position by pushing through your heels.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        let ws;
+        let stream;
+        let videoElement;
+        let canvas;
+        let ctx;
+        let running = false;
+        let sendInterval;
+        let startTime;
+        let durationInterval;
+        let repCount = 0;
+        
+        // Set up difficulty button functionality
+        document.querySelectorAll('.difficulty-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                document.querySelectorAll('.difficulty-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                this.classList.add('active');
+            });
+        });
+
+        // Update exercise info when exercise selection changes
+        document.getElementById('exercise').addEventListener('change', function() {
+            const exercise = this.value;
+            const infoElement = document.querySelector('.info-text');
+            
+            const exerciseInfo = {
+                'squat': 'Stand with feet shoulder-width apart. Lower your body as if sitting in a chair, keeping knees from extending past your toes. Keep your back straight and chest up. Return to standing position by pushing through your heels.',
+                'plank': 'Start in a prone position, then lift your body using your palms and toes. Keep your body in a straight line from head to heels. Engage your core and don\'t let your hips sag or lift too high.',
+                'pushup': 'Start in a high plank position. Lower your body by bending your elbows until your chest nearly touches the floor. Keep your body straight and engage your core. Push back to the starting position.',
+                'lunges': 'Stand tall, step one foot forward and lower your body until both knees form 90-degree angles. Your front knee should not extend past your toes. Push through your front heel to return to the starting position.',
+                'deadlift': 'Stand with feet shoulder-width apart, slightly bend your knees and lower your hips. Keep your back straight, grip your weight, and lift by pushing your hips forward. Keep the weight close to your body throughout the movement.'
+            };
+            
+            infoElement.textContent = exerciseInfo[exercise] || exerciseInfo['squat'];
+        });
+        
+        function startExercise() {
+            const exerciseType = document.getElementById("exercise").value;
+            videoElement = document.getElementById("cameraView");
+            document.getElementById("resultView").style.display = "block";
+            document.getElementById("startButton").style.display = "none";
+            document.getElementById("stopButton").style.display = "block";
+            
+            // Update status
+            document.getElementById("status").innerText = "Status: Starting camera...";
+            document.getElementById("connectionIcon").className = "status-icon yellow";
+            
+            // Reset stats
+            repCount = 0;
+            document.getElementById("repCount").innerText = "0";
+            document.getElementById("formScore").innerText = "0%";
+            document.getElementById("duration").innerText = "0:00";
+            
+            // Start timer
+            startTime = new Date();
+            durationInterval = setInterval(updateDuration, 1000);
+            
+            // Create canvas for capturing frames
+            canvas = document.createElement('canvas');
+            canvas.width = 640;
+            canvas.height = 480;
+            ctx = canvas.getContext('2d');
+            
+            // Start camera
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function(mediaStream) {
+                    stream = mediaStream;
+                    videoElement.srcObject = mediaStream;
+                    
+                    // Connect to WebSocket
+                    ws = new WebSocket(`http://localhost:2222/${exerciseType}`);
+                    
+                    ws.onopen = function() {
+                        console.log("WebSocket connected!");
+                        document.getElementById("connection").innerText = "Connection: Connected";
+                        document.getElementById("connectionIcon").className = "status-icon green";
+                        running = true;
+                        
+                        // Start sending frames
+                        sendInterval = setInterval(sendFrame, 100); // Send 10 frames per second
+                    };
+                    
+                    ws.onmessage = function(event) {
+                        const data = JSON.parse(event.data);
+                        
+                        // Update the video view
+                        document.getElementById("resultView").src = "data:image/jpeg;base64," + data.video_frame;
+                        
+                        // Update status
+                        document.getElementById("status").innerText = `Status: ${data.status}`;
+                        
+                        // Update errors
+                        if (data.errors && data.errors.length > 0) {
+                            document.getElementById("errors").innerText = `Errors: ${data.errors.join(", ")}`;
+                        } else {
+                            document.getElementById("errors").innerText = "Errors: None";
+                        }
+                        
+                        // Update rep count if provided
+                        if (data.rep_count !== undefined) {
+                            repCount = data.rep_count;
+                            document.getElementById("repCount").innerText = repCount;
+                        }
+                        
+                        // Update form score if provided
+                        if (data.form_score !== undefined) {
+                            const score = Math.round(data.form_score * 100);
+                            document.getElementById("formScore").innerText = `${score}%`;
+                        }
+                    };
+                    
+                    ws.onerror = function(error) {
+                        console.error("WebSocket error:", error);
+                        document.getElementById("connection").innerText = "Connection: Error";
+                        document.getElementById("connectionIcon").className = "status-icon red";
+                        stopExercise();
+                    };
+                    
+                    ws.onclose = function() {
+                        console.log("WebSocket closed.");
+                        document.getElementById("connection").innerText = "Connection: Closed";
+                        document.getElementById("connectionIcon").className = "status-icon red";
+                        stopExercise();
+                    };
+                })
+                .catch(function(err) {
+                    console.error("Error accessing camera: ", err);
+                    document.getElementById("status").innerText = "Status: Error accessing camera";
+                    document.getElementById("connectionIcon").className = "status-icon red";
+                });
+        }
+        
+        function sendFrame() {
+            if (!running) return;
+            
+            // Draw video frame to canvas
+            ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+            
+            // Convert to base64
+            const frameData = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+            
+            // Send to server
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    frame: frameData,
+                    difficulty: document.querySelector('.difficulty-btn.active').dataset.level
+                }));
+            }
+        }
+        
+        function stopExercise() {
+            running = false;
+            
+            // Stop sending frames
+            if (sendInterval) {
+                clearInterval(sendInterval);
+            }
+            
+            // Stop duration timer
+            if (durationInterval) {
+                clearInterval(durationInterval);
+            }
+            
+            // Close camera
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            
+            // Close WebSocket
+            if (ws) {
+                ws.close();
+            }
+            
+            // Update UI
+            document.getElementById("startButton").style.display = "block";
+            document.getElementById("stopButton").style.display = "none";
+            document.getElementById("status").innerText = "Status: Stopped";
+            document.getElementById("connection").innerText = "Connection: Waiting...";
+            document.getElementById("connectionIcon").className = "status-icon yellow";
+        }
+        
+        function updateDuration() {
+            if (!startTime) return;
+            
+            const now = new Date();
+            const diff = Math.floor((now - startTime) / 1000);
+            const minutes = Math.floor(diff / 60);
+            const seconds = diff % 60;
+            
+            document.getElementById("duration").innerText = `${minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
+        }
+    </script>
+</body>
+</html>

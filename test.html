@@ -214,10 +214,11 @@
         function connectWebSocket() {
             const selectedExercise = exerciseType.value;
             const wsUrl = getWebSocketUrl(serverUrlInput.value, selectedExercise);
-            
+            console.log(selectedExercise)
             statusArea.innerHTML += `<p>Connecting to: ${wsUrl}</p>`;
-            
-            websocket = new WebSocket(wsUrl);
+
+            console.log(wsUrl)            
+            websocket = new WebSocket('http://caai.s4h.edu.vn');
             
             websocket.onopen = () => {
                 statusArea.innerHTML = '<p class="success">WebSocket connected! Starting analysis...</p>';

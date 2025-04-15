@@ -111,7 +111,7 @@
                     videoElement.srcObject = mediaStream;
                     
                     // Connect to WebSocket
-                    ws = new WebSocket(`http://localhost:2233/${exerciseType}`);
+                    ws = new WebSocket(`http://192.168.127.199:2222/${exerciseType}`);
                     
                     ws.onopen = function() {
                         console.log("WebSocket connected!");

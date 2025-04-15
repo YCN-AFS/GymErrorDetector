@@ -1,0 +1,289 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exercise Form Analysis</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding-top: 20px;
+            background-color: #f8f9fa;
+        }
+        .video-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .canvas-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        #videoElement {
+            width: 100%;
+            max-width: 640px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        #canvas {
+            width: 100%;
+            max-width: 640px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .stats-container {
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .error-message {
+            color: red;
+            font-weight: bold;
+        }
+        .good-message {
+            color: green;
+            font-weight: bold;
+        }
+        .title-container {
+            background-color: #343a40;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="title-container text-center">
+                    <h1>Exercise Form Analysis</h1>
+                    <p>Real-time exercise form analysis with computer vision</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h3>Camera Feed</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="video-container">
+                            <video id="videoElement" autoplay="true"></video>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="exerciseSelect" class="form-label">Select Exercise:</label>
+                            <select id="exerciseSelect" class="form-select">
+                                <option value="squat">Squat</option>
+                                <option value="plank">Plank</option>
+                                <option value="pushup">Push-up</option>
+                                <option value="lunges">Lunges</option>
+                            </select>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button id="startButton" class="btn btn-primary">Start Analysis</button>
+                            <button id="stopButton" class="btn btn-danger" disabled>Stop Analysis</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h3>Analysis Results</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="canvas-container">
+                            <img id="processedImage" width="100%" src="" style="display:none;">
+                        </div>
+                        <div class="stats-container">
+                            <h4>Exercise Stats</h4>
+                            <div id="statusContainer">
+                                <p>Status: <span id="status">Not started</span></p>
+                            </div>
+                            <div id="repContainer">
+                                <p>Repetitions: <span id="repCount">0</span></p>
+                            </div>
+                            <div id="errorsContainer">
+                                <p>Errors:</p>
+                                <ul id="errorsList">
+                                    <li>No errors detected</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let video = document.getElementById('videoElement');
+        let processedImage = document.getElementById('processedImage');
+        let startButton = document.getElementById('startButton');
+        let stopButton = document.getElementById('stopButton');
+        let exerciseSelect = document.getElementById('exerciseSelect');
+        let statusElement = document.getElementById('status');
+        let repCountElement = document.getElementById('repCount');
+        let errorsList = document.getElementById('errorsList');
+        
+        let stream = null;
+        let isAnalyzing = false;
+        let sessionId = null;
+        let analyzeInterval = null;
+        
+        // Start camera
+        async function startCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: {
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        facingMode: 'user'
+                    } 
+                });
+                video.srcObject = stream;
+            } catch (err) {
+                console.error("Error accessing camera: ", err);
+                alert("Could not access camera. Please ensure you've granted permission and try again.");
+            }
+        }
+        
+        // Start analysis
+        async function startAnalysis() {
+            if (!stream) {
+                await startCamera();
+                // Wait a bit for camera to initialize
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+            
+            const exerciseType = exerciseSelect.value;
+            
+            // Start new session
+            const response = await fetch('/start_session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ exercise_type: exerciseType }),
+            });
+            
+            const data = await response.json();
+            sessionId = data.session_id;
+            
+            isAnalyzing = true;
+            startButton.disabled = true;
+            stopButton.disabled = false;
+            exerciseSelect.disabled = true;
+            
+            // Show processed image
+            processedImage.style.display = 'block';
+            
+            // Start capturing frames
+            analyzeInterval = setInterval(captureAndAnalyze, 100);
+        }
+        
+        // Stop analysis
+        async function stopAnalysis() {
+            clearInterval(analyzeInterval);
+            isAnalyzing = false;
+            startButton.disabled = false;
+            stopButton.disabled = true;
+            exerciseSelect.disabled = false;
+            
+            if (sessionId) {
+                await fetch('/end_session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ session_id: sessionId }),
+                });
+                
+                sessionId = null;
+            }
+        }
+        
+        // Capture frame and send to server
+        async function captureAndAnalyze() {
+            if (!isAnalyzing) return;
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            const frame = canvas.toDataURL('image/jpeg');
+            
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        frame: frame,
+                        exercise_type: exerciseSelect.value,
+                        session_id: sessionId
+                    }),
+                });
+                
+                const data = await response.json();
+                
+                // Update UI with analysis results
+                processedImage.src = data.processed_frame;
+                statusElement.textContent = data.status;
+                repCountElement.textContent = data.rep_count;
+                
+                // Update status styling
+                statusElement.className = '';
+                if (data.status === 'Good form') {
+                    statusElement.classList.add('good-message');
+                } else if (data.status === 'Fix your form') {
+                    statusElement.classList.add('error-message');
+                }
+                
+                // Update errors list
+                errorsList.innerHTML = '';
+                if (data.errors && data.errors.length > 0) {
+                    data.errors.forEach(error => {
+                        const li = document.createElement('li');
+                        li.textContent = error;
+                        li.classList.add('error-message');
+                        errorsList.appendChild(li);
+                    });
+                } else {
+                    const li = document.createElement('li');
+                    li.textContent = 'No errors detected';
+                    li.classList.add('good-message');
+                    errorsList.appendChild(li);
+                }
+            } catch (error) {
+                console.error('Error during analysis:', error);
+            }
+        }
+        
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', startCamera);
+        startButton.addEventListener('click', startAnalysis);
+        stopButton.addEventListener('click', stopAnalysis);
+        
+        // Stop everything when the page is closed
+        window.addEventListener('beforeunload', () => {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            if (isAnalyzing) {
+                stopAnalysis();
+            }
+        });
+    </script>
+</body>
+</html>
